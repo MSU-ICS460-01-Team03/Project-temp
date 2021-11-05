@@ -3,7 +3,7 @@
 <h1> ToDo List </h1>
 
 GUI/CMD Line
-  - [X] Implement CMD parameter inputs
+  - [ ] Implement CMD parameter inputs
 
 WindowFrames (Both Client/Server)
   - [] TBD NEEDS DISCUSSION OF WHAT IS TO BE DONE
