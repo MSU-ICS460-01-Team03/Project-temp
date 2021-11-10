@@ -13,16 +13,39 @@ public class Client {
 	private final static int PORT = 12345;
 	private DatagramSocket datagramSocket;
 	private InetAddress inetAddress;
-	private byte[] buffer = new byte[1024];
+	private byte[] buffer;
 	private int startOffset = 0;	//offset byte counter. Dynamic
 	private int packetCounter = 1;
 	private File outputFile;	//The file we want to send. May not need
 	private byte[] fileContent;	//total number of bytes in file
+	private int packetSize; //command line argument for packet size
+	private int timeout; //timeout interval to know when to re-send packets
+	private double corruptchance; //chance to corrupt the datagrams to send
+	private final int DEFAULT_PACKET_SIZE = 200;
+	private final int DEFAULT_TIMEOUT = 200;
+	private final double DEFAULT_CORRUPTCHANCE = 0;
 	
-	public Client(DatagramSocket datagramSocket, InetAddress inetAddress) {
+	public Client(DatagramSocket datagramSocket, InetAddress inetAddress, int packetSize, int timeout, double corruptchance) {
 		super();
 		this.datagramSocket = datagramSocket;
 		this.inetAddress = inetAddress;
+		this.packetSize = packetSize;
+		
+		if (packetSize == -1) {
+			this.buffer = new byte[DEFAULT_PACKET_SIZE];
+		} else {
+			this.buffer = new byte[packetSize];
+		}
+		if (timeout == -1) {
+			this.timeout = DEFAULT_TIMEOUT;
+		} else {
+			this.timeout = timeout;
+		}
+		if (corruptchance == -1) {
+			this.corruptchance = DEFAULT_CORRUPTCHANCE;
+		} else {
+			this.corruptchance = corruptchance;
+		}
 	}
 	
 	/**
@@ -104,9 +127,42 @@ public class Client {
 	 * @throws UnknownHostException
 	 */
 	public static void main(String[] args) throws UnknownHostException {
+		int packetSize = -1;
+		int timeout = -1;
+		double corruptchance = -1;
+		int i = 0;
+		while (i < args.length) {
+			if (args[i].equals("-s")) {
+				try {
+					packetSize = Integer.parseInt(args[i + 1]);
+				} catch (NumberFormatException e) {
+					System.out.println("Invalid packet length specified.");
+					return;
+				}
+				i += 2;
+			} else if (args[i].equals("-t")) {
+				try {
+					timeout = Integer.parseInt(args[i + 1]);
+				} catch (NumberFormatException e) {
+					System.out.println("Invalid timeout length specified.");
+					return;
+				}
+				i += 2;
+			} else if (args[i].equals("-d")) {
+				try {
+					corruptchance = Integer.parseInt(args[i + 1]);
+				} catch (NumberFormatException e) {
+					System.out.println("Invalid packet corruption chance specified.");
+					return;
+				}
+			} else {
+				i++;
+			}
+		}
+		
 		try (DatagramSocket datagramSocket = new DatagramSocket(0)) {
 			InetAddress inetAddress = InetAddress.getLocalHost();
-			Client sender = new Client(datagramSocket, inetAddress);
+			Client sender = new Client(datagramSocket, inetAddress, packetSize, timeout, corruptchance);
 			sender.setFileContent(args);
 			sender.sendPacket();
 		} catch (SocketException e) {
